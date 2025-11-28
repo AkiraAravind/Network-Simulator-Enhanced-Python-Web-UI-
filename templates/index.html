@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enhanced Network Simulator - BTech Project</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-content">
+                <h1>🌐 Enhanced Computer Network Simulator</h1>
+                <p class="subtitle">BTech Project - Advanced Packet Routing, Congestion Control & Dynamic Topology</p>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <!-- Left Panel - Network Visualization -->
+            <div class="panel visualization-panel">
+                <div class="panel-header">
+                    <h2>Network Topology</h2>
+                    <div class="controls-inline">
+                        <button id="resetBtn" class="btn btn-secondary btn-sm">🔄 Reset</button>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="congestionToggle">
+                            <span class="toggle-slider"></span>
+                            <span class="toggle-label">Auto Congestion</span>
+                        </label>
+                    </div>
+                </div>
+                <canvas id="networkCanvas"></canvas>
+                <div class="canvas-info">
+                    <div class="info-text">
+                        <span>💡 Click on canvas to add nodes | Click nodes to adjust congestion | Right-click to remove</span>
+                    </div>
+                </div>
+                <div class="legend">
+                    <div class="legend-item">
+                        <span class="legend-color" style="background: #22c55e;"></span>
+                        <span>Low (0-30%)</span>
+                    </div>
+                    <div class="legend-item">
+                        <span class="legend-color" style="background: #f59e0b;"></span>
+                        <span>Medium (30-70%)</span>
+                    </div>
+                    <div class="legend-item">
+                        <span class="legend-color" style="background: #ef4444;"></span>
+                        <span>High (70-100%)</span>
+                    </div>
+                    <div class="legend-item">
+                        <span class="legend-color packet-indicator"></span>
+                        <span>Active Packets</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Panel - Controls and Info -->
+            <div class="right-panel">
+                <!-- Packet Sender -->
+                <div class="panel control-panel">
+                    <div class="panel-header">
+                        <h2>📤 Send Packets</h2>
+                    </div>
+                    <div class="panel-content">
+                        <div class="form-group">
+                            <label for="sourceNode">Source Node</label>
+                            <select id="sourceNode" class="form-control">
+                                <option value="0">Node 0</option>
+                                <option value="1">Node 1</option>
+                                <option value="2">Node 2</option>
+                                <option value="3">Node 3</option>
+                                <option value="4">Node 4</option>
+                                <option value="5">Node 5</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="destNode">Destination Node</label>
+                            <select id="destNode" class="form-control">
+                                <option value="5">Node 5</option>
+                                <option value="0">Node 0</option>
+                                <option value="1">Node 1</option>
+                                <option value="2">Node 2</option>
+                                <option value="3">Node 3</option>
+                                <option value="4">Node 4</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="packetSize">Packet Size (bytes)</label>
+                            <select id="packetSize" class="form-control">
+                                <option value="64">64 bytes (Minimum)</option>
+                                <option value="512" selected>512 bytes (Standard)</option>
+                                <option value="1024">1024 bytes (Large)</option>
+                                <option value="1500">1500 bytes (MTU)</option>
+                            </select>
+                        </div>
+                        <div class="button-group">
+                            <button id="sendPacketBtn" class="btn btn-primary btn-full">Send Single Packet</button>
+                            <button id="sendBurstBtn" class="btn btn-accent btn-full">Send Burst (5 packets)</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Node Management -->
+                <div class="panel node-panel">
+                    <div class="panel-header">
+                        <h2>🔧 Node Management</h2>
+                    </div>
+                    <div class="panel-content">
+                        <div class="form-group">
+                            <label for="nodeSelect">Select Node</label>
+                            <select id="nodeSelect" class="form-control">
+                                <option value="0">Node 0</option>
+                                <option value="1">Node 1</option>
+                                <option value="2">Node 2</option>
+                                <option value="3">Node 3</option>
+                                <option value="4">Node 4</option>
+                                <option value="5">Node 5</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="congestionSlider">
+                                Manual Congestion: <span id="congestionValue">0%</span>
+                            </label>
+                            <input type="range" id="congestionSlider" class="slider" min="0" max="100" value="0">
+                        </div>
+                        <div class="node-stats" id="nodeStats">
+                            <div class="stat-row">
+                                <span>Packets Processed:</span>
+                                <span id="nodeProcessed">0</span>
+                            </div>
+                            <div class="stat-row">
+                                <span>Packets Dropped:</span>
+                                <span id="nodeDropped">0</span>
+                            </div>
+                        </div>
+                        <div class="button-group">
+                            <button id="addNodeBtn" class="btn btn-success btn-half">➕ Add Node</button>
+                            <button id="removeNodeBtn" class="btn btn-danger btn-half">➖ Remove Node</button>
+                        </div>
+                        <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #e2e8f0;">
+                            <h4 style="font-size: 14px; margin-bottom: 10px;">🔗 Edge Management</h4>
+                            <div class="form-group">
+                                <label for="edgeNode1">From Node</label>
+                                <select id="edgeNode1" class="form-control">
+                                    <option value="0">Node 0</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="edgeNode2">To Node</label>
+                                <select id="edgeNode2" class="form-control">
+                                    <option value="0">Node 0</option>
+                                </select>
+                            </div>
+                            <div class="button-group">
+                                <button id="addEdgeBtn" class="btn btn-info btn-half">➕ Add Edge</button>
+                                <button id="removeEdgeBtn" class="btn btn-warning btn-half">➖ Remove Edge</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Statistics -->
+                <div class="panel stats-panel">
+                    <div class="panel-header">
+                        <h2>📊 Network Statistics</h2>
+                    </div>
+                    <div class="panel-content">
+                        <div class="stat-item">
+                            <span class="stat-label">Total Packets</span>
+                            <span class="stat-value" id="totalPackets">0</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Delivered</span>
+                            <span class="stat-value stat-success" id="deliveredPackets">0</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Dropped</span>
+                            <span class="stat-value stat-error" id="droppedPackets">0</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Delivery Rate</span>
+                            <span class="stat-value" id="deliveryRate">0%</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Avg Hops</span>
+                            <span class="stat-value" id="avgHops">0.0</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Active Packets</span>
+                            <span class="stat-value stat-info" id="activePackets">0</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Routing Table -->
+                <div class="panel routing-panel">
+                    <div class="panel-header">
+                        <h2>📋 Routing Table</h2>
+                        <select id="routingNodeSelect" class="routing-select">
+                            <option value="0">Node 0</option>
+                            <option value="1">Node 1</option>
+                            <option value="2">Node 2</option>
+                            <option value="3">Node 3</option>
+                            <option value="4">Node 4</option>
+                            <option value="5">Node 5</option>
+                        </select>
+                    </div>
+                    <div class="panel-content">
+                        <div id="routingTableContent" class="routing-table"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Packet Log -->
+        <div class="panel log-panel">
+            <div class="panel-header">
+                <h2>📝 Packet Transmission Log</h2>
+                <div class="controls-inline">
+                    <button id="clearLogBtn" class="btn btn-secondary btn-sm">Clear Log</button>
+                    <span class="log-counter" id="logCounter">0 events</span>
+                </div>
+            </div>
+            <div class="panel-content">
+                <div id="packetLog" class="log-content"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal for node congestion control -->
+    <div id="congestionModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Node <span id="modalNodeId"></span> Congestion</h3>
+                <span class="close">&times;</span>
+            </div>
+            <div class="modal-body">
+                <label for="modalCongestionSlider">
+                    Congestion Level: <span id="modalCongestionValue">0%</span>
+                </label>
+                <input type="range" id="modalCongestionSlider" class="slider" min="0" max="100" value="0">
+                <div class="modal-buttons">
+                    <button id="applyModalBtn" class="btn btn-primary">Apply</button>
+                    <button id="cancelModalBtn" class="btn btn-secondary">Cancel</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>
